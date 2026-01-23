@@ -29,6 +29,7 @@
 
     <!-- Status and Instructions Container -->
     <LinearLayout
+        android:id="@+id/layout_instructions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
@@ -44,7 +45,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="Scan Admin QR Code"
+            android:text="@string/scan_qr_title"
             android:textColor="@android:color/white"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -54,9 +55,40 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:gravity="center"
-            android:text="Align the QR code within the frame"
+            android:text="Align code in frame or upload image"
             android:textColor="@android:color/white"
             android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Bottom Action Area -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#B3000000"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="24dp"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="Only have one phone?"
+            android:textColor="@android:color/white"
+            android:textSize="14sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_upload_qr"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Upload QR from Gallery"
+            android:textAllCaps="false"
+            android:textColor="@android:color/white"
+            app:icon="@android:drawable/ic_menu_gallery"
+            app:iconTint="@android:color/white"
+            app:strokeColor="@android:color/white" />
     </LinearLayout>
 
     <!-- Loading indicator when decrypting -->
