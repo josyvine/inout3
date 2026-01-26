@@ -7,17 +7,16 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.inout.app.R; 
+import com.inout.app.R;
 import com.inout.app.models.AttendanceRecord;
 
 import java.util.List;
 
 /**
- * Updated Adapter for the 10-column professional CSV table.
- * Handles Icons for Distance, Fingerprint, GPS, and Status.
+ * Professional Adapter for the 10-column CSV attendance table.
+ * FIXED: Handles list recycling glitches and implements professional Absent styling.
  */
 public class AttendanceAdapter extends RecyclerView.Adapter<AttendanceAdapter.AttendanceViewHolder> {
 
@@ -38,9 +37,13 @@ public class AttendanceAdapter extends RecyclerView.Adapter<AttendanceAdapter.At
     public void onBindViewHolder(@NonNull AttendanceViewHolder holder, int position) {
         AttendanceRecord record = attendanceList.get(position);
 
-        // 1. Date & Day
+        // Reset Alpha for recycled views (prevents everything becoming gray during scroll)
+        holder.tvDate.setAlpha(1.0f);
+        holder.tvDay.setAlpha(1.0f);
+
+        // 1. Date & Day (Always displayed)
         holder.tvDate.setText(record.getDate());
-        holder.tvDay.setText(record.getDayOfWeek());
+        holder.tvDay.setText(record.getDayOfWeek() != null ? record.getDayOfWeek() : "--");
 
         // 2. Check-In & Check-Out
         holder.tvIn.setText(record.getCheckInTime() != null ? record.getCheckInTime() : "--:--");
@@ -52,39 +55,42 @@ public class AttendanceAdapter extends RecyclerView.Adapter<AttendanceAdapter.At
         // 4. Location Name
         holder.tvLocation.setText(record.getLocationName() != null ? record.getLocationName() : "N/A");
 
-        // 5. Distance
+        // 5. Distance (Check-In GPS Proof)
         if (record.getCheckInTime() != null) {
             holder.tvDistance.setText(Math.round(record.getDistanceMeters()) + "m");
         } else {
             holder.tvDistance.setText("--");
         }
 
-        // 6. Fingerprint Verification Icon Logic
+        // 6. Fingerprint Verification Proof (Icon)
         if (record.getCheckInTime() != null) {
             holder.ivFingerprint.setImageResource(record.isFingerprintVerified() ? 
                     R.drawable.ic_status_present : R.drawable.ic_status_absent);
         } else {
-            holder.ivFingerprint.setImageDrawable(null);
+            // No Check-In means no fingerprint possible
+            holder.ivFingerprint.setImageResource(R.drawable.ic_status_absent);
         }
 
-        // 7. GPS Verification Icon Logic
+        // 7. GPS Verification Proof (Icon)
         if (record.getCheckInTime() != null) {
             holder.ivGps.setImageResource(record.isGpsVerified() ? 
                     R.drawable.ic_status_present : R.drawable.ic_status_absent);
         } else {
-            holder.ivGps.setImageDrawable(null);
+            // No Check-In means no GPS proof possible
+            holder.ivGps.setImageResource(R.drawable.ic_status_absent);
         }
 
-        // 8. Overall Status Indicator Logic
+        // 8. Overall Daily Status Logic
         String status = record.getStatus();
         if (status.equals("Present")) {
             holder.ivStatus.setImageResource(R.drawable.ic_status_present);
         } else if (status.equals("Partial")) {
             holder.ivStatus.setImageResource(R.drawable.ic_status_partial);
         } else {
-            // Absent
+            // Status: Absent
             holder.ivStatus.setImageResource(R.drawable.ic_status_absent);
-            // Gray out the text for absent rows to make them look professional
+            
+            // Visual Polish: Gray out the row if the employee was absent
             holder.tvDate.setAlpha(0.5f);
             holder.tvDay.setAlpha(0.5f);
         }
@@ -95,6 +101,9 @@ public class AttendanceAdapter extends RecyclerView.Adapter<AttendanceAdapter.At
         return attendanceList.size();
     }
 
+    /**
+     * ViewHolder maps the 10 columns defined in item_attendance_row.xml
+     */
     static class AttendanceViewHolder extends RecyclerView.ViewHolder {
         TextView tvDate, tvDay, tvIn, tvOut, tvTotalHours, tvLocation, tvDistance;
         ImageView ivFingerprint, ivGps, ivStatus;
