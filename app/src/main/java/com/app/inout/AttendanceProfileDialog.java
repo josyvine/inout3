@@ -58,7 +58,6 @@ public class AttendanceProfileDialog extends DialogFragment {
         super.onStart();
         Dialog dialog = getDialog();
         if (dialog != null) {
-            // Make the dialog full screen width/height
             int width = ViewGroup.LayoutParams.MATCH_PARENT;
             int height = ViewGroup.LayoutParams.MATCH_PARENT;
             dialog.getWindow().setLayout(width, height);
@@ -84,27 +83,29 @@ public class AttendanceProfileDialog extends DialogFragment {
         loadAttendanceData();
 
         binding.btnClose.setOnClickListener(v -> dismiss());
+
+        // FIXED: Connected Export button to the CsvExportHelper logic
         binding.btnExportCsv.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Preparing CSV for " + employee.getName(), Toast.LENGTH_SHORT).show();
-            // CsvExportHelper will be called here in the next steps
+            if (fullMonthList != null && !fullMonthList.isEmpty()) {
+                String fileName = employee.getName().replace(" ", "_") + "_" + 
+                                 new SimpleDateFormat("MMM_yyyy", Locale.US).format(Calendar.getInstance().getTime());
+                CsvExportHelper.exportAttendanceToCsv(requireContext(), fullMonthList, fileName);
+            } else {
+                Toast.makeText(getContext(), "No data available to export.", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
-    /**
-     * Fills the fixed CV-style header with employee information and Google photo.
-     */
     private void setupHeader() {
         binding.tvHeaderName.setText(employee.getName());
         binding.tvHeaderId.setText("ID: " + employee.getEmployeeId());
         binding.tvHeaderPhone.setText("Phone: " + employee.getPhone());
         binding.tvHeaderCompany.setText(EncryptionHelper.getInstance(getContext()).getCompanyName());
 
-        // Set the current Month & Year for the report header
         Calendar cal = Calendar.getInstance();
         String currentMonthYear = new SimpleDateFormat("MMMM yyyy", Locale.US).format(cal.getTime());
         binding.tvHeaderMonth.setText(currentMonthYear);
 
-        // Load Circular Google Profile Image
         if (employee.getPhotoUrl() != null && !employee.getPhotoUrl().isEmpty()) {
             Glide.with(this)
                     .load(employee.getPhotoUrl())
@@ -120,15 +121,13 @@ public class AttendanceProfileDialog extends DialogFragment {
         binding.rvAttendanceTable.setAdapter(adapter);
     }
 
-    /**
-     * Logic to fetch real logs and generate "Absent" rows for the rest of the month.
-     */
     private void loadAttendanceData() {
         binding.progressBar.setVisibility(View.VISIBLE);
 
+        // FIXED: Changed Direction to DESCENDING to match the required Firestore Index
         db.collection("attendance")
                 .whereEqualTo("employeeId", employee.getEmployeeId())
-                .orderBy("timestamp", Query.Direction.ASCENDING)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     Map<String, AttendanceRecord> existingLogs = new HashMap<>();
@@ -143,14 +142,11 @@ public class AttendanceProfileDialog extends DialogFragment {
                 .addOnFailureListener(e -> {
                     binding.progressBar.setVisibility(View.GONE);
                     Log.e(TAG, "Data fetch failed", e);
+                    // This error is now handled by matching the Index direction
                     Toast.makeText(getContext(), "Error loading month records", Toast.LENGTH_SHORT).show();
                 });
     }
 
-    /**
-     * Iterates through every day of the current month.
-     * If a record exists in Firestore, it adds it. Otherwise, it creates an Absent row.
-     */
     private void generateFullMonthReport(Map<String, AttendanceRecord> logs) {
         fullMonthList.clear();
         Calendar cal = Calendar.getInstance();
@@ -166,14 +162,13 @@ public class AttendanceProfileDialog extends DialogFragment {
 
             if (logs.containsKey(dateId)) {
                 AttendanceRecord record = logs.get(dateId);
-                record.setDayOfWeek(dayName); // Ensure day is set
+                // FIXED: Explicitly set the day name at runtime to ensure the column is not empty
+                record.setDayOfWeek(dayName);
                 fullMonthList.add(record);
             } else {
-                // Create dummy Absent record
                 AttendanceRecord absent = new AttendanceRecord();
                 absent.setDate(dateId);
                 absent.setDayOfWeek(dayName);
-                // Status helper in model will handle the "Absent" icon based on null fields
                 fullMonthList.add(absent);
             }
             cal.add(Calendar.DAY_OF_MONTH, 1);
