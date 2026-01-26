@@ -25,7 +25,7 @@ import com.inout.app.utils.TimeUtils;
 
 /**
  * Fragment where employees perform Check-In and Check-Out.
- * FIXED: Displays real user data and links to the assigned office location.
+ * FIXED: Aligned with the updated AttendanceRecord model to resolve build errors.
  */
 public class EmployeeCheckInFragment extends Fragment {
 
@@ -54,7 +54,7 @@ public class EmployeeCheckInFragment extends Fragment {
         mAuth = FirebaseAuth.getInstance();
         locationHelper = new LocationHelper(requireContext());
 
-        // Initial UI State
+        // UI starts in a safe disabled state until data loads
         binding.btnCheckIn.setEnabled(false);
         binding.btnCheckOut.setEnabled(false);
 
@@ -65,46 +65,38 @@ public class EmployeeCheckInFragment extends Fragment {
     }
 
     /**
-     * Fetches user profile to display real Name/ID and retrieve the office assignment.
+     * Fetches real user profile data to display on the header cards.
      */
     private void loadUserDataAndStatus() {
         if (mAuth.getCurrentUser() == null) return;
         String uid = mAuth.getCurrentUser().getUid();
         
-        // Listen for profile changes (Approval, Name updates, Location assignment)
         db.collection("users").document(uid).addSnapshotListener((doc, error) -> {
             if (error != null || doc == null || !doc.exists()) return;
 
             currentUser = doc.toObject(User.class);
             if (currentUser != null) {
-                // FIXED: Replace XML placeholders with live database data
+                // Update UI Header with live data
                 binding.tvEmployeeName.setText(currentUser.getName() != null ? currentUser.getName() : "Unknown User");
                 binding.tvEmployeeId.setText(currentUser.getEmployeeId() != null ? currentUser.getEmployeeId() : "Pending ID");
 
-                // Check if Admin has assigned a location ID (e.g., the ID for Canara Bank)
+                // Load the office location assigned to this user
                 if (currentUser.getAssignedLocationId() != null && !currentUser.getAssignedLocationId().isEmpty()) {
                     fetchAssignedLocationDetails(currentUser.getAssignedLocationId());
                 } else {
-                    binding.tvStatus.setText("Status: Waiting for Admin to assign an office location.");
+                    binding.tvStatus.setText("Status: No workplace assigned.");
                 }
                 
-                // Also load today's attendance state
                 loadTodayAttendance();
             }
         });
     }
 
-    /**
-     * Retrieves the Lat/Lng and name of the specific office assigned to this employee.
-     */
     private void fetchAssignedLocationDetails(String locId) {
         db.collection("locations").document(locId).get().addOnSuccessListener(doc -> {
             assignedLocation = doc.toObject(CompanyConfig.class);
-            if (assignedLocation != null) {
-                Log.d(TAG, "Office Assigned: " + assignedLocation.getName());
-                updateUIBasedOnStatus();
-            }
-        }).addOnFailureListener(e -> Log.e(TAG, "Failed to fetch location info", e));
+            updateUIBasedOnStatus();
+        });
     }
 
     private void loadTodayAttendance() {
@@ -124,19 +116,12 @@ public class EmployeeCheckInFragment extends Fragment {
     }
 
     private void updateUIBasedOnStatus() {
-        if (currentUser == null) return;
-
-        // If location isn't fetched yet, keep buttons disabled
-        if (assignedLocation == null) {
-            binding.btnCheckIn.setEnabled(false);
-            binding.btnCheckOut.setEnabled(false);
-            return;
-        }
+        if (currentUser == null || assignedLocation == null) return;
 
         if (todayRecord == null) {
             binding.btnCheckIn.setEnabled(true);
             binding.btnCheckOut.setEnabled(false);
-            binding.tvStatus.setText("Status: Not Checked In (" + assignedLocation.getName() + ")");
+            binding.tvStatus.setText("Status: Ready to Check-In (" + assignedLocation.getName() + ")");
         } else if (todayRecord.getCheckOutTime() == null || todayRecord.getCheckOutTime().isEmpty()) {
             binding.btnCheckIn.setEnabled(false);
             binding.btnCheckOut.setEnabled(true);
@@ -150,7 +135,7 @@ public class EmployeeCheckInFragment extends Fragment {
 
     private void initiateAction(boolean isCheckIn) {
         if (assignedLocation == null) {
-            Toast.makeText(getContext(), "Error: No office location assigned to you.", Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), "Error: Office location not assigned.", Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -167,7 +152,7 @@ public class EmployeeCheckInFragment extends Fragment {
 
             @Override
             public void onAuthenticationFailed() {
-                Toast.makeText(getContext(), "Fingerprint not recognized.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Fingerprint verification failed.", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -187,11 +172,14 @@ public class EmployeeCheckInFragment extends Fragment {
                             assignedLocation.getRadius());
 
                     if (inRange) {
-                        if (isCheckIn) performCheckIn(location);
+                        float dist = LocationHelper.calculateDistance(
+                                location.getLatitude(), location.getLongitude(),
+                                assignedLocation.getLatitude(), assignedLocation.getLongitude());
+                        
+                        if (isCheckIn) performCheckIn(location, dist);
                         else performCheckOut(location);
                     } else {
-                        String msg = "Denied: You are not within the 100m radius of " + assignedLocation.getName();
-                        Toast.makeText(getContext(), msg, Toast.LENGTH_LONG).show();
+                        Toast.makeText(getContext(), "Access Denied: Not within office range.", Toast.LENGTH_LONG).show();
                     }
                 }
             }
@@ -204,10 +192,11 @@ public class EmployeeCheckInFragment extends Fragment {
         });
     }
 
-    private void performCheckIn(Location loc) {
+    private void performCheckIn(Location loc, float distance) {
         String dateId = TimeUtils.getCurrentDateId();
         String recordId = currentUser.getEmployeeId() + "_" + dateId;
 
+        // FIXED: Using the 4-argument constructor restored in AttendanceRecord model
         AttendanceRecord record = new AttendanceRecord(
                 currentUser.getEmployeeId(), 
                 currentUser.getName(), 
@@ -219,10 +208,9 @@ public class EmployeeCheckInFragment extends Fragment {
         record.setCheckInLat(loc.getLatitude());
         record.setCheckInLng(loc.getLongitude());
         record.setFingerprintVerified(true);
-        record.setLocationVerified(true);
-        
-        // Save UID to satisfy security rules (resource.data.uid)
-        record.setRecordId(recordId); 
+        record.setLocationVerified(true); // Maps to setGpsVerified in model
+        record.setDistanceMeters(distance);
+        record.setLocationName(assignedLocation.getName());
 
         db.collection("attendance").document(recordId).set(record)
                 .addOnSuccessListener(aVoid -> Toast.makeText(getContext(), "Check-In Success!", Toast.LENGTH_SHORT).show());
