@@ -12,6 +12,7 @@ import java.util.Map;
 /**
  * Utility class to generate a full monthly report.
  * It merges real Firestore data with generated "Absent" dates.
+ * FIXED: Ensures the Day of Week is calculated for every record.
  */
 public class AttendanceReportManager {
 
@@ -34,20 +35,22 @@ public class AttendanceReportManager {
         // 3. Determine how many days are in this month (28, 29, 30, or 31)
         int totalDaysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
 
-        // 4. Setup date formatters to match your CSV requirements
+        // 4. Setup date formatters
         SimpleDateFormat dateIdFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        // This formatter specifically extracts the Day name (e.g., Monday)
         SimpleDateFormat dayNameFormat = new SimpleDateFormat("EEEE", Locale.US);
 
-        // 5. Loop through every day of the month
+        // 5. Loop through every day of the month from 1 to totalDaysInMonth
         for (int i = 1; i <= totalDaysInMonth; i++) {
             String dateId = dateIdFormat.format(calendar.getTime());
             String dayName = dayNameFormat.format(calendar.getTime());
 
             if (logs.containsKey(dateId)) {
-                // DATA EXISTS: Add the real record from Firestore
+                // DATA EXISTS: Get the real record from Firestore
                 AttendanceRecord realRecord = logs.get(dateId);
-                // Ensure the Day of Week is set for the table
+                
                 if (realRecord != null) {
+                    // FIXED: Set the day name calculated from the calendar
                     realRecord.setDayOfWeek(dayName);
                     fullList.add(realRecord);
                 }
@@ -55,15 +58,17 @@ public class AttendanceReportManager {
                 // DATA MISSING: Create a professional "Absent" record for this date
                 AttendanceRecord absentRecord = new AttendanceRecord();
                 absentRecord.setDate(dateId);
+                
+                // FIXED: Set the day name calculated from the calendar
                 absentRecord.setDayOfWeek(dayName);
                 
-                // Fields like checkInTime and checkOutTime remain NULL.
-                // This triggers the "ic_status_absent" icon in the Adapter.
+                // Note: Fields like totalHours, checkInTime, etc., stay null.
+                // The AttendanceAdapter and getStatus() logic will show this as "Absent".
                 
                 fullList.add(absentRecord);
             }
 
-            // Move to the next day
+            // Move the calendar to the next day for the next iteration
             calendar.add(Calendar.DAY_OF_MONTH, 1);
         }
 
