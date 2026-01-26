@@ -12,6 +12,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -20,14 +21,18 @@ import com.inout.app.adapters.AttendanceAdapter;
 import com.inout.app.databinding.FragmentEmployeeHistoryBinding;
 import com.inout.app.models.AttendanceRecord;
 import com.inout.app.models.User;
+import com.inout.app.utils.EncryptionHelper;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Fragment for Employees to view their own personal attendance history.
- * Data is presented in a horizontal monthly table format (CSV-style).
- * FIXED: Resolved ViewBinding visibility error for included table header.
+ * FIXED: Displays real Company Name, calculates Day of Week, and enables Export.
  */
 public class EmployeeHistoryFragment extends Fragment {
 
@@ -40,6 +45,7 @@ public class EmployeeHistoryFragment extends Fragment {
     private List<AttendanceRecord> historyLogs;
     private AttendanceAdapter adapter;
     private String employeeId;
+    private User currentUserProfile;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -57,6 +63,16 @@ public class EmployeeHistoryFragment extends Fragment {
 
         setupRecyclerView();
         fetchEmployeeIdAndLoadLogs();
+
+        // FIXED: Connected the Export button to logic
+        binding.btnExportHistory.setOnClickListener(v -> {
+            if (historyLogs != null && !historyLogs.isEmpty() && currentUserProfile != null) {
+                String fileName = "My_Attendance_" + new SimpleDateFormat("MMM_yyyy", Locale.US).format(new Date());
+                CsvExportHelper.exportAttendanceToCsv(requireContext(), historyLogs, fileName);
+            } else {
+                Toast.makeText(getContext(), "No history to export.", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void setupRecyclerView() {
@@ -65,10 +81,6 @@ public class EmployeeHistoryFragment extends Fragment {
         binding.rvHistoryTable.setAdapter(adapter);
     }
 
-    /**
-     * First, we must get the employeeId (e.g., EMP001) from the user profile,
-     * then we can query the attendance logs.
-     */
     private void fetchEmployeeIdAndLoadLogs() {
         if (mAuth.getCurrentUser() == null) return;
         
@@ -78,13 +90,24 @@ public class EmployeeHistoryFragment extends Fragment {
         db.collection("users").document(uid).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
-                        User user = documentSnapshot.toObject(User.class);
-                        if (user != null && user.getEmployeeId() != null) {
-                            this.employeeId = user.getEmployeeId();
+                        currentUserProfile = documentSnapshot.toObject(User.class);
+                        if (currentUserProfile != null && currentUserProfile.getEmployeeId() != null) {
+                            this.employeeId = currentUserProfile.getEmployeeId();
                             
-                            // Update header info if views exist in this layout variant
-                            if (binding.tvHistoryId != null) {
-                                binding.tvHistoryId.setText("ID: " + this.employeeId);
+                            // FIXED: Set real data in the header
+                            binding.tvHistoryName.setText(currentUserProfile.getName());
+                            binding.tvHistoryId.setText("ID: " + this.employeeId);
+                            
+                            // FIXED: Set real Company Name from EncryptionHelper
+                            String company = EncryptionHelper.getInstance(requireContext()).getCompanyName();
+                            binding.tvHistoryCompany.setText(company);
+
+                            // Set current Month/Year
+                            binding.tvHistoryMonth.setText(new SimpleDateFormat("MMMM yyyy", Locale.US).format(new Date()));
+
+                            // Load Google Photo
+                            if (currentUserProfile.getPhotoUrl() != null) {
+                                Glide.with(this).load(currentUserProfile.getPhotoUrl()).circleCrop().into(binding.ivHistoryPhoto);
                             }
                             
                             loadMyLogs();
@@ -101,9 +124,6 @@ public class EmployeeHistoryFragment extends Fragment {
                 });
     }
 
-    /**
-     * Queries the 'attendance' collection for records belonging to this employee.
-     */
     private void loadMyLogs() {
         db.collection("attendance")
                 .whereEqualTo("employeeId", employeeId)
@@ -119,9 +139,21 @@ public class EmployeeHistoryFragment extends Fragment {
 
                     if (value != null) {
                         historyLogs.clear();
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+                        SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE", Locale.US);
+
                         for (DocumentSnapshot doc : value) {
                             AttendanceRecord record = doc.toObject(AttendanceRecord.class);
                             if (record != null) {
+                                // FIXED: Calculate and set the Day Name from the Date string
+                                try {
+                                    Date date = sdf.parse(record.getDate());
+                                    if (date != null) {
+                                        record.setDayOfWeek(dayFormat.format(date));
+                                    }
+                                } catch (Exception e) {
+                                    record.setDayOfWeek("Unknown");
+                                }
                                 historyLogs.add(record);
                             }
                         }
@@ -130,11 +162,9 @@ public class EmployeeHistoryFragment extends Fragment {
                         
                         if (historyLogs.isEmpty()) {
                             binding.tvNoData.setVisibility(View.VISIBLE);
-                            // FIXED: Use getRoot() to set visibility on the included layout
                             binding.tableHeader.getRoot().setVisibility(View.GONE);
                         } else {
                             binding.tvNoData.setVisibility(View.GONE);
-                            // FIXED: Use getRoot() to set visibility on the included layout
                             binding.tableHeader.getRoot().setVisibility(View.VISIBLE);
                         }
                     }
