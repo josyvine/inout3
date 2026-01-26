@@ -6,120 +6,140 @@
     android:layout_height="match_parent"
     android:background="#F5F5F5">
 
-    <!-- Personal Info Header -->
+    <!-- 1. FIXED CV-STYLE HEADER SECTION -->
     <com.google.android.material.card.MaterialCardView
-        android:id="@+id/card_history_info"
+        android:id="@+id/card_history_header"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:cardElevation="4dp"
+        app:cardCornerRadius="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <LinearLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="16dp"
+            android:background="@android:color/white">
 
+            <!-- Profile Photo -->
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/iv_history_photo"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/inout"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.MaterialComponents.SmallComponent"
+                app:strokeColor="@color/teal_700"
+                app:strokeWidth="2dp" />
+
+            <!-- Details Stack -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:orientation="vertical"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/iv_history_photo"
+                app:layout_constraintTop_toTopOf="@+id/iv_history_photo">
+
+                <TextView
+                    android:id="@+id/tv_history_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="My History"
+                    android:textColor="@android:color/black"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_history_id"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ID: EMP000"
+                    android:textColor="@color/dark_gray"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/tv_history_company"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Company Name"
+                    android:textColor="@color/teal_700"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Month Indicator -->
             <TextView
+                android:id="@+id/tv_history_month"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="My Attendance History"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_status_box"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="2dp"
+                android:text="January 2026"
                 android:textColor="@android:color/black"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/iv_history_photo" />
 
-            <TextView
-                android:id="@+id/tv_history_subtitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Showing your recent check-in/out logs"
-                android:textColor="@android:color/darker_gray"
-                android:textSize="12sp" />
-        </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- CSV Style Table Header -->
-    <LinearLayout
-        android:id="@+id/table_header"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="#E0E0E0"
-        android:orientation="horizontal"
-        android:padding="10dp"
-        android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/card_history_info"
-        tools:visibility="visible">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1.2"
-            android:text="Date"
-            android:textColor="@android:color/black"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="In"
-            android:textColor="@android:color/black"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="Out"
-            android:textColor="@android:color/black"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="end"
-            android:text="Total"
-            android:textColor="@android:color/black"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- History RecyclerView (CSV Rows) -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_history_table"
+    <!-- 2. SCROLLABLE TABLE AREA -->
+    <!-- Enable both horizontal and vertical scrolling -->
+    <HorizontalScrollView
+        android:id="@+id/horizontal_scroll_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:scrollbars="horizontal|vertical"
+        app:layout_constraintBottom_toTopOf="@+id/btn_export_history"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/table_header"
-        tools:listitem="@layout/item_attendance_row" />
+        app:layout_constraintTop_toBottomOf="@+id/card_history_header">
 
-    <!-- No History State -->
-    <TextView
-        android:id="@+id/tv_no_data"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="You haven't checked in yet."
-        android:textColor="@android:color/darker_gray"
-        android:visibility="gone"
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <!-- Shared Table Header (10 Columns with Icons) -->
+            <include
+                android:id="@+id/table_header"
+                layout="@layout/layout_attendance_table_header" />
+
+            <!-- Data Rows -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_history_table"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                tools:listitem="@layout/item_attendance_row" />
+
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- Export Action Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_export_history"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:layout_margin="16dp"
+        android:text="EXPORT MY CSV REPORT"
+        android:textStyle="bold"
+        app:cornerRadius="8dp"
+        app:icon="@android:drawable/ic_menu_save"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/card_history_info" />
+        app:layout_constraintStart_toStartOf="parent" />
 
+    <!-- Loading UI -->
     <ProgressBar
         android:id="@+id/progress_bar"
         android:layout_width="wrap_content"
@@ -129,5 +149,18 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- No Data State -->
+    <TextView
+        android:id="@+id/tv_no_data"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No records found for this month."
+        android:textColor="@android:color/darker_gray"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/card_history_header" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
