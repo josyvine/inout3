@@ -10,7 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.inout.app.R;
+import com.inout.app.R; 
 import com.inout.app.models.AttendanceRecord;
 
 import java.util.List;
