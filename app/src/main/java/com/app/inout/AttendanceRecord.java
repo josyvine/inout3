@@ -3,8 +3,8 @@ package com.inout.app.models;
 import com.google.firebase.firestore.IgnoreExtraProperties;
 
 /**
- * Updated Model class for a daily attendance record.
- * Includes all columns required for professional CSV proof.
+ * Professional Model class for a daily attendance record.
+ * Fixed to support both the Check-In logic and the 10-column CSV table.
  */
 @IgnoreExtraProperties
 public class AttendanceRecord {
@@ -29,15 +29,32 @@ public class AttendanceRecord {
     
     // Security flags
     private boolean fingerprintVerified;
-    private boolean gpsVerified; // Renamed from locationVerified for clarity
+    private boolean gpsVerified; 
     
     private long timestamp; 
 
+    /**
+     * Default constructor required for Firestore.
+     */
     public AttendanceRecord() {
-        // Default constructor required for Firestore
     }
 
-    // Helper to determine status for the UI logic
+    /**
+     * Parameterized constructor required by EmployeeCheckInFragment.
+     * FIXED: This resolves the "constructor cannot be applied to given types" error.
+     */
+    public AttendanceRecord(String employeeId, String employeeName, String date, long timestamp) {
+        this.employeeId = employeeId;
+        this.employeeName = employeeName;
+        this.date = date;
+        this.timestamp = timestamp;
+        this.fingerprintVerified = true; 
+        this.gpsVerified = true;    
+    }
+
+    /**
+     * Helper to determine status for the UI logic.
+     */
     public String getStatus() {
         if (checkInTime != null && checkOutTime != null && fingerprintVerified && gpsVerified) {
             return "Present";
@@ -176,6 +193,14 @@ public class AttendanceRecord {
 
     public void setGpsVerified(boolean gpsVerified) {
         this.gpsVerified = gpsVerified;
+    }
+
+    /**
+     * Alias for setGpsVerified to maintain compatibility with existing Fragment logic.
+     * FIXED: This resolves the "cannot find symbol method setLocationVerified" error.
+     */
+    public void setLocationVerified(boolean verified) {
+        this.gpsVerified = verified;
     }
 
     public long getTimestamp() {
