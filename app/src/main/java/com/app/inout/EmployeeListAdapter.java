@@ -27,6 +27,7 @@ public class EmployeeListAdapter extends RecyclerView.Adapter<EmployeeListAdapte
     private final List<User> employeeList;
     private final OnEmployeeActionListener listener;
     
+    // Set to store the UIDs of selected employees for bulk actions
     private final Set<String> selectedUserIds = new HashSet<>();
 
     public interface OnEmployeeActionListener {
@@ -55,6 +56,7 @@ public class EmployeeListAdapter extends RecyclerView.Adapter<EmployeeListAdapte
         holder.tvName.setText(user.getName());
         holder.tvPhone.setText(user.getPhone() != null ? user.getPhone() : "No Phone");
         
+        // Handle Status Display
         if (user.isApproved()) {
             String idSuffix = (user.getEmployeeId() != null) ? " (" + user.getEmployeeId() + ")" : "";
             holder.tvStatus.setText("Status: Approved" + idSuffix);
@@ -66,6 +68,7 @@ public class EmployeeListAdapter extends RecyclerView.Adapter<EmployeeListAdapte
             holder.btnApprove.setVisibility(View.VISIBLE);
         }
         
+        // Multi-selection visual feedback
         if (selectedUserIds.contains(user.getUid())) {
             holder.viewOverlay.setVisibility(View.VISIBLE);
             holder.ivCheck.setVisibility(View.VISIBLE);
@@ -74,9 +77,10 @@ public class EmployeeListAdapter extends RecyclerView.Adapter<EmployeeListAdapte
             holder.ivCheck.setVisibility(View.GONE);
         }
 
+        // Standard profile placeholder
         holder.ivProfile.setImageResource(R.drawable.inout); 
 
-        // Individual Approve Button Click
+        // Individual Approve Button Logic
         holder.btnApprove.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onApproveClicked(user);
@@ -88,13 +92,15 @@ public class EmployeeListAdapter extends RecyclerView.Adapter<EmployeeListAdapte
             toggleSelection(user.getUid());
         });
 
-        // Handle Individual Options or Bulk Action on long press
+        // LONG PRESS: Handle individual delete if nothing selected, or bulk action if selected
         holder.itemView.setOnLongClickListener(v -> {
             if (selectedUserIds.isEmpty()) {
+                // If nothing is selected, long press acts as an individual delete trigger
                 if (listener != null) {
                     listener.onDeleteClicked(user);
                 }
             } else {
+                // If items are selected, long press triggers bulk menu for the selection
                 if (!selectedUserIds.contains(user.getUid())) {
                     toggleSelection(user.getUid());
                 }
