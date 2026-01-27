@@ -27,7 +27,6 @@ import com.google.firebase.firestore.WriteBatch;
 import com.inout.app.databinding.FragmentAdminEmployeesBinding;
 import com.inout.app.models.User;
 import com.inout.app.models.CompanyConfig;
-import com.inout.app.adapters.EmployeeListAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,6 +65,7 @@ public class AdminEmployeesFragment extends Fragment implements EmployeeListAdap
 
     private void setupRecyclerView() {
         binding.recyclerViewEmployees.setLayoutManager(new LinearLayoutManager(getContext()));
+        // Initialize adapter with empty list and this fragment as the listener
         adapter = new EmployeeListAdapter(getContext(), employeeList, this);
         binding.recyclerViewEmployees.setAdapter(adapter);
     }
@@ -114,6 +114,7 @@ public class AdminEmployeesFragment extends Fragment implements EmployeeListAdap
 
     /**
      * FIXED: Implements the interface method for individual "Approve" button.
+     * It ensures a location is assigned even for single approvals.
      */
     @Override
     public void onApproveClicked(User user) {
