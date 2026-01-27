@@ -1,7 +1,6 @@
-package com.inout.app.adapters;
+package com.app.inout.adapters;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,7 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.inout.app.R;
-import com.inout.app.models.User;
+import com.app.inout.models.User;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -21,7 +20,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Updated Adapter to handle Multi-Selection and Bulk Actions.
+ * Adapter to handle Multi-Selection, Bulk Actions, and Individual Approvals.
  */
 public class EmployeeListAdapter extends RecyclerView.Adapter<EmployeeListAdapter.EmployeeViewHolder> {
 
@@ -29,11 +28,12 @@ public class EmployeeListAdapter extends RecyclerView.Adapter<EmployeeListAdapte
     private final List<User> employeeList;
     private final OnEmployeeActionListener listener;
     
-    // Set to store the UIDs of selected employees
+    // Set to store the UIDs of selected employees for bulk actions
     private final Set<String> selectedUserIds = new HashSet<>();
 
     public interface OnEmployeeActionListener {
-        // Triggered on long press when employees are selected
+        void onApproveClicked(User user);
+        void onDeleteClicked(User user);
         void onBulkActionRequested(List<User> selectedUsers);
     }
 
@@ -57,14 +57,19 @@ public class EmployeeListAdapter extends RecyclerView.Adapter<EmployeeListAdapte
         holder.tvName.setText(user.getName());
         holder.tvPhone.setText(user.getPhone() != null ? user.getPhone() : "No Phone");
         
-        // Show status and assigned location ID if exists
-        String statusText = user.isApproved() ? "Approved" : "Pending";
-        if (user.getEmployeeId() != null) {
-            statusText += " (" + user.getEmployeeId() + ")";
+        // Handle Status Display
+        if (user.isApproved()) {
+            String idSuffix = (user.getEmployeeId() != null) ? " (" + user.getEmployeeId() + ")" : "";
+            holder.tvStatus.setText("Status: Approved" + idSuffix);
+            holder.tvStatus.setTextColor(context.getResources().getColor(android.R.color.holo_green_dark));
+            holder.btnApprove.setVisibility(View.GONE);
+        } else {
+            holder.tvStatus.setText("Status: Pending Approval");
+            holder.tvStatus.setTextColor(context.getResources().getColor(android.R.color.holo_orange_dark));
+            holder.btnApprove.setVisibility(View.VISIBLE);
         }
-        holder.tvStatus.setText("Status: " + statusText);
         
-        // Visual feedback for selection
+        // Multi-selection visual feedback
         if (selectedUserIds.contains(user.getUid())) {
             holder.viewOverlay.setVisibility(View.VISIBLE);
             holder.ivCheck.setVisibility(View.VISIBLE);
@@ -73,28 +78,38 @@ public class EmployeeListAdapter extends RecyclerView.Adapter<EmployeeListAdapte
             holder.ivCheck.setVisibility(View.GONE);
         }
 
-        // Logic for Profile Photo (Standard placeholder)
+        // Standard profile placeholder
         holder.ivProfile.setImageResource(R.drawable.inout); 
 
-        // SINGLE TAP: Toggle Selection
+        // Individual Approve Button Logic
+        holder.btnApprove.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onApproveClicked(user);
+            }
+        });
+
+        // Toggle Selection on tap
         holder.itemView.setOnClickListener(v -> {
             toggleSelection(user.getUid());
         });
 
-        // LONG PRESS: Trigger the action menu (Remove/Assign Location)
+        // LONG PRESS: Handle individual delete if nothing selected, or bulk action if selected
         holder.itemView.setOnLongClickListener(v -> {
-            if (!selectedUserIds.isEmpty()) {
-                // Ensure the long-pressed item is part of the selection
+            if (selectedUserIds.isEmpty()) {
+                // If nothing is selected, long press acts as an individual delete/options trigger
+                if (listener != null) {
+                    listener.onDeleteClicked(user);
+                }
+            } else {
+                // If items are selected, long press triggers bulk menu for the selection
                 if (!selectedUserIds.contains(user.getUid())) {
                     toggleSelection(user.getUid());
                 }
-                
                 if (listener != null) {
                     listener.onBulkActionRequested(getSelectedUsers());
                 }
-                return true;
             }
-            return false;
+            return true;
         });
     }
 
@@ -107,9 +122,6 @@ public class EmployeeListAdapter extends RecyclerView.Adapter<EmployeeListAdapte
         notifyDataSetChanged();
     }
 
-    /**
-     * @return List of User objects currently selected by the Admin.
-     */
     public List<User> getSelectedUsers() {
         List<User> selectedUsers = new ArrayList<>();
         for (User user : employeeList) {
@@ -134,6 +146,7 @@ public class EmployeeListAdapter extends RecyclerView.Adapter<EmployeeListAdapte
         ImageView ivProfile, ivCheck;
         TextView tvName, tvPhone, tvStatus;
         View viewOverlay;
+        Button btnApprove;
 
         public EmployeeViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -143,6 +156,7 @@ public class EmployeeListAdapter extends RecyclerView.Adapter<EmployeeListAdapte
             tvPhone = itemView.findViewById(R.id.tv_employee_phone);
             tvStatus = itemView.findViewById(R.id.tv_employee_status);
             viewOverlay = itemView.findViewById(R.id.view_selected_overlay);
+            btnApprove = itemView.findViewById(R.id.btn_approve_employee);
         }
     }
 }
