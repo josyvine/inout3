@@ -28,16 +28,12 @@ import com.inout.app.databinding.FragmentAdminEmployeesBinding;
 import com.inout.app.models.User;
 import com.inout.app.models.CompanyConfig;
 
-// REMOVED: import com.inout.app.adapters.EmployeeListAdapter; 
-// (Not needed because Fragment and Adapter are now in the same package)
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Updated Fragment to handle Multi-Selection, Bulk Deletion, 
  * and Individual/Bulk Location Assignment.
- * FIXED: Removed incorrect import to resolve build error.
  */
 public class AdminEmployeesFragment extends Fragment implements EmployeeListAdapter.OnEmployeeActionListener {
 
@@ -76,16 +72,13 @@ public class AdminEmployeesFragment extends Fragment implements EmployeeListAdap
 
     private void fetchLocations() {
         db.collection("locations").addSnapshotListener((value, error) -> {
-            if (error != null) {
-                Log.e(TAG, "Failed to fetch locations", error);
-                return;
-            }
+            if (error != null) return;
             if (value != null) {
                 locationList.clear();
                 for (DocumentSnapshot doc : value) {
                     CompanyConfig loc = doc.toObject(CompanyConfig.class);
                     if (loc != null) {
-                        loc.setId(doc.getId()); // Store document ID for assignment
+                        loc.setId(doc.getId());
                         locationList.add(loc);
                     }
                 }
@@ -101,10 +94,7 @@ public class AdminEmployeesFragment extends Fragment implements EmployeeListAdap
                     @Override
                     public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
                         binding.progressBar.setVisibility(View.GONE);
-                        if (error != null) {
-                            Log.e(TAG, "Listen failed.", error);
-                            return;
-                        }
+                        if (error != null) return;
 
                         if (value != null) {
                             employeeList.clear();
@@ -123,7 +113,8 @@ public class AdminEmployeesFragment extends Fragment implements EmployeeListAdap
     }
 
     /**
-     * Handles the individual "Approve" button on the employee card.
+     * FIXED: Implements the interface method for individual "Approve" button.
+     * It ensures a location is assigned even for single approvals.
      */
     @Override
     public void onApproveClicked(User user) {
@@ -185,7 +176,7 @@ public class AdminEmployeesFragment extends Fragment implements EmployeeListAdap
     }
 
     /**
-     * Implements individual delete action.
+     * FIXED: Implements the interface method for individual delete action.
      */
     @Override
     public void onDeleteClicked(User user) {
