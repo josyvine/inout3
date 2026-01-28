@@ -27,7 +27,9 @@ import com.google.firebase.firestore.WriteBatch;
 import com.inout.app.databinding.FragmentAdminEmployeesBinding;
 import com.inout.app.models.User;
 import com.inout.app.models.CompanyConfig;
-import com.inout.app.adapters.EmployeeListAdapter;
+
+// REMOVED: import com.inout.app.adapters.EmployeeListAdapter; 
+// (Not needed because Fragment and Adapter are now in the same package)
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +37,7 @@ import java.util.List;
 /**
  * Updated Fragment to handle Multi-Selection, Bulk Deletion, 
  * and Individual/Bulk Location Assignment.
- * FIXED: Synchronized assignedLocationId key for database consistency.
+ * FIXED: Removed incorrect import to resolve build error.
  */
 public class AdminEmployeesFragment extends Fragment implements EmployeeListAdapter.OnEmployeeActionListener {
 
@@ -121,7 +123,7 @@ public class AdminEmployeesFragment extends Fragment implements EmployeeListAdap
     }
 
     /**
-     * Handles individual "Approve" button on the employee card.
+     * Handles the individual "Approve" button on the employee card.
      */
     @Override
     public void onApproveClicked(User user) {
@@ -169,7 +171,6 @@ public class AdminEmployeesFragment extends Fragment implements EmployeeListAdap
             int selectedIndex = spinner.getSelectedItemPosition();
             if (!empId.isEmpty() && selectedIndex >= 0) {
                 String locId = locationList.get(selectedIndex).getId();
-                // WRITE: assignedLocationId using matching key
                 db.collection("users").document(user.getUid())
                         .update("approved", true, 
                                 "employeeId", empId, 
@@ -275,7 +276,6 @@ public class AdminEmployeesFragment extends Fragment implements EmployeeListAdap
     private void performBulkAssignment(List<User> selectedUsers, String locId) {
         WriteBatch batch = db.batch();
         for (User user : selectedUsers) {
-            // WRITE: assignedLocationId using matching key
             batch.update(db.collection("users").document(user.getUid()), 
                     "assignedLocationId", locId,
                     "approved", true);
